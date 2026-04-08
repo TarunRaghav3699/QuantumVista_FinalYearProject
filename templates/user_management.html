@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary btn-sm mb-3">
+            <i class="fas fa-arrow-left me-2"></i>Dashboard
+        </a>
+        <h2 class="h4 mb-1"><i class="fas fa-users-cog me-2"></i>Master User Management</h2>
+        <p class="text-muted mb-0">Control roles, access levels, and active registry records</p>
+    </div>
+</div>
+
+<div class="card shadow-lg border-0 mb-5">
+    <div class="card-header text-white py-3">
+        <h5 class="mb-0"><i class="fas fa-chalkboard-teacher me-2 text-info"></i>Approved Teachers</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Username / ID</th>
+                        <th>Full Name</th>
+                        <th>Department</th>
+                        <th>Access Role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in teachers %}
+                    <tr>
+                        <td class="fw-bold">{{ t.username }}</td>
+                        <td>{{ t.name }}</td>
+                        <td>{{ t.department }}</td>
+                        <td class="text-end align-middle">
+                            <div class="d-flex align-items-center justify-content-end gap-2">
+                                <select class="form-select form-select-sm border-0 bg-light shadow-sm fw-medium" style="max-width: 150px; border-radius: 8px;"
+                                    onchange="updateRole('{{ t.username }}', this.value)">
+                                    <option value="admin" {% if t.role=='admin' %}selected{% endif %}>Super Admin</option>
+                                    <option value="teacher" {% if t.role=='teacher' %}selected{% endif %}>Teacher User</option>
+                                    <option value="student" {% if t.role=='student' %}selected{% endif %}>Revoke to Student</option>
+                                </select>
+                                <button class="btn btn-primary rounded-circle shadow-sm border-0 d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; padding: 0;" title="Change Password" onclick="forcePasswordReset('{{ t.username }}', '{{ t.name }}')">
+                                    <i class="fas fa-key small"></i>
+                                </button>
+                                <button class="btn btn-danger rounded-circle shadow-sm border-0 d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; padding: 0;" title="Delete User" onclick="deleteUser('{{ t.username }}')">
+                                    <i class="fas fa-trash-alt small"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">No teachers actively registered</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white border-bottom py-3">
+        <h5 class="mb-0"><i class="fas fa-user-graduate me-2 text-primary"></i>Approved Students</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Roll Number</th>
+                        <th>Name</th>
+                        <th>Course</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td class="fw-bold">{{ s.roll_no }}</td>
+                        <td>{{ s.name }}</td>
+                        <td>{{ s.course }} ({{ s.semester }})</td>
+                        <td class="text-end align-middle">
+                            <div class="d-flex align-items-center justify-content-end gap-2">
+                                <select class="form-select form-select-sm border-0 bg-light shadow-sm fw-medium" style="max-width: 150px; border-radius: 8px;"
+                                    onchange="updateRole('{{ s.username }}', this.value)">
+                                    <option value="student" {% if s.role=='student' %}selected{% endif %}>Student</option>
+                                    <option value="admin" {% if s.role=='admin' %}selected{% endif %}>Promote to Admin</option>
+                                </select>
+                                <button class="btn btn-primary rounded-circle shadow-sm border-0 d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; padding: 0;" title="Change Password" onclick="forcePasswordReset('{{ s.username }}', '{{ s.name }}')">
+                                    <i class="fas fa-key small"></i>
+                                </button>
+                                <button class="btn btn-danger rounded-circle shadow-sm border-0 d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; padding: 0;" title="Delete Student" onclick="deleteUser('{{ s.username }}')">
+                                    <i class="fas fa-trash-alt small"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">No students actively registered</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateRole(username, newRole) {
+        if (!confirm(`Are you sure you want to change ${username}'s access role?`)) {
+            window.location.reload();
+            return;
+        }
+        fetch('/api/update_role', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: username, role: newRole })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Access Role uniquely updated!');
+                    window.location.reload();
+                } else {
+                    alert('Error updating role: ' + (data.message || 'Unknown Exception'));
+                }
+            });
+    }
+
+    function deleteUser(username) {
+        if (!confirm(`CAUTION: Are you sure you want to completely erase ${username} from the database?`)) return;
+        
+        fetch(`/api/delete_user/${username}`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to delete user: ' + (data.message || 'Unknown Error'));
+                }
+            });
+    }
+
+    function forcePasswordReset(username, name) {
+        const newPassword = prompt(`ADMIN OVERRIDE: Enter the new password for ${name} (${username}):`);
+        if (!newPassword || newPassword.trim() === '') {
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to permanently reset the password for ${name}?`)) {
+            return;
+        }
+
+        fetch('/api/update_password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: username, password: newPassword.trim() })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert(`SUCCESS: Password for ${username} has been overridden.`);
+            } else {
+                alert('ERROR: Failed to update password - ' + (data.message || 'Unknown Exception'));
+            }
+        });
+    }
+</script>
+{% endblock %}

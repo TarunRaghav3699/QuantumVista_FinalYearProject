@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="mb-3">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+        <div class="card shadow-lg">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="fas fa-book-open fa-3x text-primary mb-3"></i>
+                    <h2 class="fw-bold">Create New Subject/Class</h2>
+                    <p class="text-muted">Fill details to generate a new class tab for attendance session</p>
+                </div>
+                
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                
+                <form method="POST" action="{{ url_for('create_class') }}">
+                    <div class="mb-3">
+                        <label class="form-label">Subject Name</label>
+                        <input type="text" class="form-control" name="subject" placeholder="e.g. Data Structures" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Topic Taught</label>
+                        <input type="text" class="form-control" name="topic" placeholder="e.g. Binary Search Trees" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Degree/Course</label>
+                            <select class="form-select" name="degree" required>
+                                <option value="B.Tech" selected>B.Tech</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Semester</label>
+                            <select class="form-select" name="semester" required>
+                                <option value="8th Sem" selected>8th Semester</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Scheduled Date & Time</label>
+                        <input type="datetime-local" class="form-control" name="date_time" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                        <i class="fas fa-plus-circle me-2"></i>Create New Class Tab
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary btn-sm mb-3">
+            <i class="fas fa-arrow-left me-2"></i>Dashboard
+        </a>
+        <h2 class="h4 mb-1"><i class="fas fa-list me-2"></i>Attendance Sheet</h2>
+        <p class="text-muted mb-0">Class: {{ class_id }} | Session: {{ session_id }}</p>
+    </div>
+    <div class="d-flex gap-3">
+        <a href="{{ url_for('download_csv', class_id=class_id, session_id=session_id) }}" 
+           class="btn btn-success">
+            <i class="fas fa-download me-2"></i>CSV
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-lg">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Student Name</th>
+                        <th>Roll No</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr class="{% if student.status == 'present' %}table-success{% elif student.status == 'absent' %}table-danger{% else %}table-warning{% endif %}">
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <strong>{{ student.name }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ student.roll_no }}</span>
+                        </td>
+                        <td>
+                            {% if student.status == 'present' %}
+                                <span class="badge bg-success fs-6">
+                                    <i class="fas fa-check-circle me-1"></i>Present
+                                </span>
+                            {% elif student.status == 'absent' %}
+                                <span class="badge bg-danger fs-6">
+                                    <i class="fas fa-times-circle me-1"></i>Absent
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning fs-6">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn {% if student.status == 'present' %}btn-success{% else %}btn-outline-success{% endif %} present-btn" 
+                                        data-id="{{ student.id }}" data-status="present"
+                                        title="Mark Present">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn {% if student.status == 'absent' %}btn-danger{% else %}btn-outline-danger{% endif %} absent-btn" 
+                                        data-id="{{ student.id }}" data-status="absent"
+                                        title="Mark Absent">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-center gap-4 mt-5 mb-5 pb-3 fade-up">
+    <div class="d-flex align-items-center bg-white px-4 py-3 rounded-pill shadow-sm border border-success border-opacity-25" style="min-width: 200px;">
+        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 45px; height: 45px;">
+            <i class="fas fa-check fs-5"></i>
+        </div>
+        <div class="text-start">
+            <h4 class="fw-bold mb-0 text-dark" id="present-count">{{ students|selectattr('status', 'equalto', 'present')|list|length }}</h4>
+            <small class="text-success fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Present Students</small>
+        </div>
+    </div>
+    
+    <div class="d-flex align-items-center bg-white px-4 py-3 rounded-pill shadow-sm border border-danger border-opacity-25" style="min-width: 200px;">
+        <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 45px; height: 45px;">
+            <i class="fas fa-times fs-5"></i>
+        </div>
+        <div class="text-start">
+            <h4 class="fw-bold mb-0 text-dark" id="absent-count">{{ students|selectattr('status', 'equalto', 'absent')|list|length }}</h4>
+            <small class="text-danger fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Absent Students</small>
+        </div>
+    </div>
+</div>
+
+<script>
+setInterval(() => {
+    fetch('/api/get_live_attendance/{{ class_id }}/{{ session_id }}')
+    .then(r => r.json())
+    .then(data => {
+        let presentCount = 0;
+        let absentCount = 0;
+        
+        document.querySelectorAll('tbody tr').forEach(row => {
+            const btn = row.querySelector('.present-btn');
+            if(!btn) return;
+            const studentId = btn.getAttribute('data-id');
+            const status = data[studentId] || 'pending';
+            
+            row.className = status === 'present' ? 'table-success' : (status === 'absent' ? 'table-danger' : 'table-warning');
+            
+            const pBtn = row.querySelector('.present-btn');
+            const aBtn = row.querySelector('.absent-btn');
+            
+            if(status === 'present') {
+                pBtn.className = 'btn btn-success present-btn';
+                aBtn.className = 'btn btn-outline-danger absent-btn';
+                presentCount++;
+            } else if(status === 'absent') {
+                pBtn.className = 'btn btn-outline-success present-btn';
+                aBtn.className = 'btn btn-danger absent-btn';
+                absentCount++;
+            } else {
+                pBtn.className = 'btn btn-outline-success present-btn';
+                aBtn.className = 'btn btn-outline-danger absent-btn';
+            }
+            
+            const tdStatus = row.querySelectorAll('td')[3];
+            if(status === 'present') {
+                tdStatus.innerHTML = '<span class="badge bg-success fs-6"><i class="fas fa-check-circle me-1"></i>Present</span>';
+            } else if(status === 'absent') {
+                tdStatus.innerHTML = '<span class="badge bg-danger fs-6"><i class="fas fa-times-circle me-1"></i>Absent</span>';
+            } else {
+                tdStatus.innerHTML = '<span class="badge bg-warning fs-6">Pending</span>';
+            }
+        });
+        
+        document.getElementById('present-count').innerText = presentCount;
+        document.getElementById('absent-count').innerText = absentCount;
+    });
+}, 3000);
+</script>
+{% endblock %}

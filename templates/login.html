@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="fas fa-university fa-3x text-primary mb-3"></i>
+                    <h3 class="fw-bold mb-1" style="color: var(--primary-dark);">Secure Portal Login</h3>
+                    <p class="text-muted fw-medium mb-4">Access your centralized dashboard</p>
+
+                    <!-- Dual Tab Toggle -->
+                    <div class="d-flex justify-content-center mb-5 fade-up">
+                        <div class="btn-group toggle-group shadow-sm bg-white p-1 rounded-pill" role="group">
+                            <input type="radio" class="btn-check" name="login_type" id="studentLogin" value="student" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary rounded-pill border-0 px-4 fw-bold text-uppercase" style="letter-spacing: 0.5px;" for="studentLogin">
+                                <i class="fas fa-user-graduate me-2"></i>Student
+                            </label>
+
+                            <input type="radio" class="btn-check" name="login_type" id="teacherLogin" value="teacher" autocomplete="off">
+                            <label class="btn btn-outline-primary rounded-pill border-0 px-4 fw-bold text-uppercase" style="letter-spacing: 0.5px;" for="teacherLogin">
+                                <i class="fas fa-chalkboard-teacher me-2"></i>Faculty
+                            </label>
+                        </div>
+                    </div>
+
+                    {% if error %}
+                    <div class="alert alert-danger shadow-sm border-0 d-flex align-items-center justify-content-center fw-medium" id="loginAlert" style="background: rgba(220, 53, 69, 0.1); color: #dc3545; font-size: 0.95rem;">
+                        <i class="fas fa-exclamation-circle me-2"></i> {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <form id="loginForm" method="POST" action="{{ url_for('login') }}">
+                        <input type="hidden" name="login_type" id="loginTypeForm" value="student">
+                        
+                        <div class="mb-4 text-start">
+                            <label id="usernameLabel" class="form-label text-muted fw-bold small text-uppercase" style="letter-spacing: 1px;">University Roll Number</label>
+                            <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
+                                <span class="input-group-text bg-white border-end-0 text-muted px-4"><i id="usernameIcon" class="fas fa-id-card"></i></span>
+                                <input type="text" inputmode="numeric" pattern="[0-9]+" class="form-control border-start-0 ps-0 fs-6" id="username" name="username" placeholder="Enter Registration Roll No" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-5 text-start">
+                            <label class="form-label text-muted fw-bold small text-uppercase" style="letter-spacing: 1px;">Password Key</label>
+                            <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
+                                <span class="input-group-text bg-white border-end-0 text-muted px-4"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control border-start-0 ps-0 fs-6" id="password" name="password" placeholder="Enter your password" required>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="submitBtn" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow hover-card mb-4" style="font-size: 1.1rem; letter-spacing: 0.5px;">
+                            <i class="fas fa-sign-in-alt me-2"></i> Authenticate Device
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-3 border-top pt-4">
+                        <p class="text-muted fw-medium mb-0">Unregistered? <a href="{{ url_for('register') }}" class="text-primary text-decoration-none fw-bold ms-1 hover-card">Apply for Access</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-dismiss the alert so it doesn't statically linger
+    const alertBox = document.getElementById('loginAlert');
+    if (alertBox) {
+        setTimeout(() => {
+            alertBox.style.transition = 'opacity 0.6s ease';
+            alertBox.style.opacity = '0';
+            setTimeout(() => alertBox.remove(), 600);
+        }, 4000);
+    }
+
+    document.querySelectorAll('input[name="login_type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.getElementById('loginTypeForm').value = this.value;
+            const label = document.getElementById('usernameLabel');
+            const input = document.getElementById('username');
+            const icon = document.getElementById('usernameIcon');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (this.value === 'student') {
+                label.textContent = 'University Roll Number';
+                input.placeholder = 'Enter Registration Roll No';
+                input.setAttribute('inputmode', 'numeric');
+                input.setAttribute('pattern', '[0-9]+');
+                icon.className = 'fas fa-id-card';
+                submitBtn.classList.replace('btn-dark', 'btn-primary');
+            } else {
+                label.textContent = 'Faculty Username ID';
+                input.placeholder = 'Enter assigned Faculty Username';
+                input.removeAttribute('inputmode');
+                input.removeAttribute('pattern');
+                icon.className = 'fas fa-user-tie';
+                submitBtn.classList.replace('btn-primary', 'btn-dark');
+            }
+            input.value = '';
+        });
+    });
+</script>
+{% endblock %}

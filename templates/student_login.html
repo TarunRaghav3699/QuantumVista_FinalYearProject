@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="mb-3">
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-2"></i>Back to Start
+            </a>
+        </div>
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-gradient-primary text-white text-center py-4">
+                <i class="fas fa-qrcode fa-3x mb-3"></i>
+                <h3 class="mb-0">Scan QR Code</h3>
+                <p class="mb-0 opacity-75">Point your camera at the QR code</p>
+            </div>
+            <div class="card-body p-5 text-center">
+                <div id="qr-reader" style="width: 100%; max-width: 400px; margin: 0 auto;"></div>
+                <div id="result" class="mt-4"></div>
+                
+                <div class="mt-4">
+                    <div class="alert alert-info">
+                        <i class="fas fa-wifi me-2"></i>
+                        <strong>Status:</strong> 
+                        <span id="network-status" class="badge bg-success">College WiFi Connected</span>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <button id="manual-mark" class="btn btn-outline-primary">
+                        <i class="fas fa-mobile-alt me-2"></i>Manual Entry
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4 justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-gradient-primary text-white text-center py-3">
+                <i class="fas fa-history fa-2x mb-2"></i>
+                <h4 class="mb-0">My Attendance History</h4>
+            </div>
+            <div class="card-body p-4 text-center">
+                <p class="text-muted mb-3">Select a subject below to instantly view your tracked attendance ledger.</p>
+                
+                <select id="classSelector" class="form-select form-select-lg mb-4 shadow-sm fw-medium border-0 bg-light" style="border-radius: 10px;" onchange="fetchStudentHistory(this.value)">
+                    <option value="" selected disabled>-- Select a Subject --</option>
+                    {% for c in classes %}
+                    <option value="{{ c.class_id }}">{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <div id="attendanceHistoryTable" class="table-responsive d-none">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-start ps-4">Date & Time of Class</th>
+                                <th>Scan Timestamp</th>
+                                <th class="text-end pe-4">Attendance Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- Populated dynamically via AJAX -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QR Scanner -->
+<link rel="stylesheet" href="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.css">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+let html5QrCode;
+
+function onScanSuccess(decodedText) {
+    document.getElementById('result').innerHTML = `
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            QR Scanned! Marking attendance...
+        </div>
+    `;
+    
+    fetch('/api/scan_qr', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({qr_data: decodedText})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('result').innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    ✅ Attendance marked successfully!
+                </div>
+            `;
+            html5QrcodeScanner.clear();
+        } else {
+            document.getElementById('result').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-times-circle me-2"></i>
+                    ${data.message}
+                </div>
+            `;
+        }
+    });
+}
+
+const html5QrcodeScanner = new Html5QrcodeScanner(
+    "qr-reader", 
+    { fps: 10, qrbox: {width: 250, height: 250}, rememberLastUsedCamera: true },
+    false
+);
+html5QrcodeScanner.render(onScanSuccess);
+
+document.getElementById('manual-mark').addEventListener('click', function() {
+    let code = prompt("Enter the Session/Class Code provided precisely by your teacher:");
+    if (code) {
+        document.getElementById('result').innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-spinner fa-spin me-2"></i>
+                Processing code...
+            </div>
+        `;
+        fetch('/api/mark_with_code', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ code: code })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                document.getElementById('result').innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        ✅ Manual Attendance verified and marked!
+                    </div>
+                `;
+            } else {
+                document.getElementById('result').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle me-2"></i>
+                        ❌ ${data.message}
+                    </div>
+                `;
+            }
+        });
+    }
+});
+
+function fetchStudentHistory(classId) {
+    if(!classId) return;
+    
+    fetch(`/api/student/history/${classId}`)
+    .then(r => r.json())
+    .then(data => {
+        if(data.success && data.history) {
+            const tableBox = document.getElementById('attendanceHistoryTable');
+            const tbody = document.getElementById('historyTableBody');
+            
+            tbody.innerHTML = '';
+            
+            if(data.history.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-muted py-4 text-center">No historical sessions exist for this subject.</td></tr>';
+            } else {
+                data.history.forEach(session => {
+                    let statusBadge;
+                    if(session.status === 'Present') {
+                        statusBadge = '<span class="badge bg-success px-3 py-2 shadow-sm"><i class="fas fa-check me-1"></i>Present</span>';
+                    } else if(session.status === 'Pending') {
+                        statusBadge = '<span class="badge bg-warning text-dark px-3 py-2 shadow-sm"><i class="fas fa-clock me-1"></i>Pending</span>';
+                    } else {
+                        statusBadge = '<span class="badge bg-danger px-3 py-2 shadow-sm"><i class="fas fa-times me-1"></i>Absent</span>';
+                    }
+                        
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="fw-bold text-start ps-4">${session.date}</td>
+                            <td class="text-muted">${session.timestamp}</td>
+                            <td class="text-end pe-4">${statusBadge}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            tableBox.classList.remove('d-none');
+        } else {
+            alert('Error mapping dataset: ' + (data.message || 'Unknown Exception'));
+        }
+    });
+}
+</script>
+{% endblock %}

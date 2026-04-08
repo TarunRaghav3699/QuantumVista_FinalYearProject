@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-lg">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                    <h2 class="fw-bold">Student Registration</h2>
+                    <p class="text-muted">Create an account to track your attendance</p>
+                </div>
+                
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                {% if success %}
+                <div class="alert alert-success">{{ success }}</div>
+                {% endif %}
+                
+                <!-- TABS -->
+        <ul class="nav nav-pills nav-justified mb-4" id="registerTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold" id="student-tab" data-bs-toggle="pill" data-bs-target="#student-form" type="button" role="tab">Student Registration</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="teacher-tab" data-bs-toggle="pill" data-bs-target="#teacher-form" type="button" role="tab">Teacher Registration</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="registerTabsContent">
+            <!-- Student Form -->
+            <div class="tab-pane fade show active" id="student-form" role="tabpanel">
+                <form method="POST" action="{{ url_for('register') }}">
+                    <input type="hidden" name="register_type" value="student">
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Full Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    
+                    <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted fw-bold small text-uppercase">University Roll Number</label>
+                                    <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fas fa-id-card"></i></span>
+                                        <input type="text" inputmode="numeric" pattern="[0-9]+" minlength="4" class="form-control border-start-0 ps-0 bg-white" id="roll_no" name="roll_no" title="Roll Number must be positive numeric digits globally" placeholder="e.g. 210134" required>
+                                    </div>
+                                </div>         <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Semester</label>
+                            <input type="text" class="form-control" name="semester" placeholder="e.g. 5th Sem" required>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label text-muted">Target Class Setup</label>
+                            <select class="form-select" name="class_id" required>
+                                <option value="" disabled selected>Select active class template...</option>
+                                {% for cls in classes %}
+                                <option value="{{ cls.class_id }}">{{ cls.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label text-muted">Secure Password</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                        <i class="fas fa-user-plus me-2"></i>Apply as Student
+                    </button>
+                </form>
+            </div>
+
+            <!-- Teacher Form -->
+            <div class="tab-pane fade" id="teacher-form" role="tabpanel">
+                <form method="POST" action="{{ url_for('register') }}">
+                    <input type="hidden" name="register_type" value="teacher">
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Full Name / Title</label>
+                        <input type="text" class="form-control" id="t_name" name="name" placeholder="e.g. Dr. John Doe" required>
+                    </div>
+                                        <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted fw-bold small text-uppercase">Desired Faculty Username</label>
+                                    <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fas fa-user-tag"></i></span>
+                                        <input type="text" class="form-control border-start-0 ps-0 bg-white" id="t_username" name="username" pattern="^(?![0-9]+$)[a-zA-Z0-9_]{3,20}$" title="Username MUST contain letters (no pure numbers). e.g., tarun123" placeholder="Set secure username" required>
+                                    </div>
+                                    <small class="text-primary fw-bold mt-2 ps-1 d-block" id="usernameSuggestion" style="cursor:pointer; display:none;"></small>
+                                </div> 
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Department</label>
+                        <input type="text" class="form-control" name="department" placeholder="e.g. Computer Science" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label text-muted">Secure Password</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-info text-white w-100 py-2 fw-bold">
+                        <i class="fas fa-chalkboard-teacher me-2"></i>Apply as Teacher Admin
+                    </button>
+                </form>
+            </div>
+        </div>            
+                    <div class="text-center mt-4">
+                        <p class="text-muted mb-0">Already registered? <a href="{{ url_for('login') }}" class="text-primary text-decoration-none fw-bold">Login here</a></p>
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    
+    // Dynamic Unique Username AI Suggestion for Faculty
+    document.getElementById('t_name').addEventListener('input', function() {
+        const nameStr = this.value.trim().toLowerCase().replace(/[^a-z]/g, '');
+        const suggBox = document.getElementById('usernameSuggestion');
+        if (nameStr.length > 2) {
+            const rand = Math.floor(100 + Math.random() * 900);
+            const suggested = nameStr + rand;
+            suggBox.innerHTML = `<i class="fas fa-magic me-1"></i> Suggestion: <strong>${suggested}</strong> (Click to auto-fill)`;
+            suggBox.style.display = 'block';
+            
+            suggBox.onclick = () => {
+                document.getElementById('t_username').value = suggested;
+                suggBox.style.display = 'none';
+            };
+        } else {
+            suggBox.style.display = 'none';
+        }
+    });
+    });
+</script>
+{% endblock %}
